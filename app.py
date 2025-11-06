@@ -25,14 +25,27 @@ opcion = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info("""
-**Dashboard de Finanzas v1.0**
 
-Esta aplicación te permite:
-- Calcular el valor de bonos
-- Analizar inversiones en acciones
-- Tomar decisiones informadas
-""")
+# Sección del código QR
+st.sidebar.markdown("### 📱 Acceda a nuestra aplicación")
+
+# Cargar y mostrar el código QR
+try:
+    from PIL import Image
+    qr_image = Image.open("CodigoQR.jpeg")
+    st.sidebar.image(qr_image, use_container_width=True)
+    
+    # Botón para descargar el QR
+    with open("CodigoQR.jpeg", "rb") as file:
+        st.sidebar.download_button(
+            label="⬇️ Descargar Código QR",
+            data=file,
+            file_name="CodigoQR_FinanzasApp.jpeg",
+            mime="image/jpeg",
+            use_container_width=True
+        )
+except Exception as e:
+    st.sidebar.error("No se pudo cargar el código QR")
 
 # Contenido principal según la opción seleccionada
 if opcion == "🏠 Inicio":
@@ -56,8 +69,8 @@ if opcion == "🏠 Inicio":
         - Recomendaciones de inversión
         """)
         
-        if st.button("Ir a Bonos", use_container_width=True):
-            st.sidebar.radio("Selecciona una opción:", ["🏠 Inicio", "📊 Bonos", "📈 Acciones"], index=1)
+        # if st.button("Ir a Bonos", use_container_width=True):
+        #     st.sidebar.radio("Selecciona una opción:", ["🏠 Inicio", "📊 Bonos", "📈 Acciones"], index=1)
     
     with col2:
         st.subheader("📈 Calculadora de Acciones")
@@ -78,8 +91,8 @@ if opcion == "🏠 Inicio":
         - Métricas comparativas
         """)
         
-        if st.button("Ir a Acciones", use_container_width=True):
-            st.sidebar.radio("Selecciona una opción:", ["🏠 Inicio", "📊 Bonos", "📈 Acciones"], index=2)
+        # if st.button("Ir a Acciones", use_container_width=True):
+        #     st.sidebar.radio("Selecciona una opción:", ["🏠 Inicio", "📊 Bonos", "📈 Acciones"], index=2)
     
     st.markdown("---")
     
