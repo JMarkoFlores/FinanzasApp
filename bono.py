@@ -828,6 +828,18 @@ def mostrar_calculadora_bonos():
     st.pyplot(fig)
     plt.close()
     
+    # Interpretación del diagrama de flujo
+    total_cupones = cupon_periodico * tiempo
+
+    st.info(
+        f"""**📖 Interpretación:** Este diagrama muestra todos los flujos de efectivo del bono a lo largo del tiempo.
+    La flecha roja hacia abajo representa tu inversión inicial.
+    Las flechas verdes hacia arriba son los cupones que recibirás periódicamente (${cupon_periodico:,.2f} cada {periodo.lower()}), totalizando ${total_cupones:,.2f}.
+    La flecha azul al final representa la devolución del valor nominal (${valor_nominal:,.2f}).
+    En total recibirás ${total_cupones + valor_nominal:,.2f}.
+    """, icon="💡"
+    )
+    
     st.markdown("---")
     
     # Crear tabla de flujos detallada
@@ -882,7 +894,7 @@ def mostrar_calculadora_bonos():
     # Opciones de descarga
     st.subheader("📥 Descargar Reportes")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         # Generar Excel
@@ -903,6 +915,17 @@ def mostrar_calculadora_bonos():
             data=pdf_file,
             file_name=f"reporte_bono_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
             mime="application/pdf",
+            use_container_width=True
+        )
+    
+    with col3:
+        # Generar CSV
+        csv_data = df_flujos.to_csv(index=False, encoding='utf-8-sig')
+        st.download_button(
+            label="📋 Descargar CSV",
+            data=csv_data,
+            file_name=f"reporte_bono_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
             use_container_width=True
         )
     

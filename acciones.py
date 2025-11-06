@@ -717,6 +717,21 @@ def mostrar_calculadora_acciones():
             fig_crecimiento = crear_grafico_crecimiento(resultados, moneda, params['tipo_inversion'])
             st.plotly_chart(fig_crecimiento, use_container_width=True)
             
+            # Interpretación del gráfico de crecimiento
+            if params['tipo_inversion'] == "Aportes periódicos":
+                st.info("""
+                **📖 Interpretación:** Este gráfico muestra la evolución de tu inversión a lo largo del tiempo. 
+                La línea azul representa tus aportes acumulados (el dinero que TÚ pones), mientras que el área verde 
+                muestra los intereses generados (el dinero que tu dinero genera). Note cómo los intereses crecen de forma 
+                exponencial gracias al interés compuesto: ¡ganas intereses sobre intereses!
+                """, icon="💡")
+            else:
+                st.info("""
+                **📖 Interpretación:** Este gráfico muestra cómo crece tu inversión inicial a lo largo del tiempo 
+                gracias al interés compuesto. Aunque no agregas más dinero, tu capital trabaja para ti y se multiplica 
+                año tras año. La curva ascendente refleja el poder del tiempo en las inversiones.
+                """, icon="💡")
+            
             # Gráfico de distribución
             fig_distribucion = crear_grafico_distribucion_final(
                 resultados['total_aportado'],
@@ -724,6 +739,15 @@ def mostrar_calculadora_acciones():
                 moneda
             )
             st.plotly_chart(fig_distribucion, use_container_width=True)
+            
+            # Interpretación del gráfico de distribución
+            porcentaje_interes = (resultados['interes_total'] / resultados['saldo_final']) * 100
+            st.info(f"""
+            **📖 Interpretación:** Este gráfico circular muestra de dónde proviene tu capital final. 
+            El **{porcentaje_interes:.1f}%** de tu dinero proviene de los intereses ganados, mientras que 
+            solo el **{100-porcentaje_interes:.1f}%** es dinero que tú aportaste directamente. 
+            Esto demuestra el poder del interés compuesto: ¡tu dinero trabaja más que tú!
+            """, icon="💡")
             
             # Tabla detallada
             if params['tipo_inversion'] == "Aportes periódicos":
@@ -966,39 +990,198 @@ def mostrar_calculadora_acciones():
         st.markdown("---")
         st.subheader("📥 Exportar Reporte")
         
-        if st.button("📄 Generar Reporte PDF", type="primary", use_container_width=True):
-            try:
-                # Preparar datos para PDF
-                modulo_a_data = {
-                    'edad_actual': params_a['edad_actual'],
-                    'edad_jubilacion': params_a['edad_jubilacion'],
-                    'plazo': params_a['plazo'],
-                    'tipo_inversion': params_a['tipo_inversion'],
-                    'monto_inicial': params_a['monto_inicial'],
-                    'aporte_periodico': params_a.get('aporte_periodico', 0),
-                    'frecuencia': params_a.get('frecuencia', 'N/A'),
-                    'tea': params_a['tea'],
-                    'total_aportado': resultados_a['total_aportado'],
-                    'interes_total': resultados_a['interes_total'],
-                    'capital_final': resultados_a['saldo_final']
-                }
-                
-                modulo_b_data = st.session_state.get('resultados_modulo_b', None)
-                
-                pdf_file = generar_pdf_completo(modulo_a_data, modulo_b_data, moneda)
-                
-                st.download_button(
-                    label="⬇️ Descargar Reporte PDF",
-                    data=pdf_file,
-                    file_name=f"Reporte_Inversion_Acciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                    type="secondary"
-                )
-                
-                st.success("✅ PDF generado exitosamente!")
-            except Exception as e:
-                st.error(f"❌ Error al generar PDF: {str(e)}")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("📄 PDF", type="primary", use_container_width=True):
+                try:
+                    # Preparar datos para PDF
+                    modulo_a_data = {
+                        'edad_actual': params_a['edad_actual'],
+                        'edad_jubilacion': params_a['edad_jubilacion'],
+                        'plazo': params_a['plazo'],
+                        'tipo_inversion': params_a['tipo_inversion'],
+                        'monto_inicial': params_a['monto_inicial'],
+                        'aporte_periodico': params_a.get('aporte_periodico', 0),
+                        'frecuencia': params_a.get('frecuencia', 'N/A'),
+                        'tea': params_a['tea'],
+                        'total_aportado': resultados_a['total_aportado'],
+                        'interes_total': resultados_a['interes_total'],
+                        'capital_final': resultados_a['saldo_final']
+                    }
+                    
+                    modulo_b_data = st.session_state.get('resultados_modulo_b', None)
+                    
+                    pdf_file = generar_pdf_completo(modulo_a_data, modulo_b_data, moneda)
+                    
+                    st.download_button(
+                        label="⬇️ Descargar PDF",
+                        data=pdf_file,
+                        file_name=f"Reporte_Inversion_Acciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        type="secondary"
+                    )
+                except Exception as e:
+                    st.error(f"❌ Error al generar PDF: {str(e)}")
+        
+        with col2:
+            if st.button("📊 Excel", type="primary", use_container_width=True):
+                try:
+                    # Crear DataFrame con resumen
+                    data_summary = {
+                        'Concepto': [
+                            'Edad Actual',
+                            'Edad Jubilación',
+                            'Plazo (años)',
+                            'Tipo Inversión',
+                            'Monto Inicial',
+                            'Aporte Periódico',
+                            'Frecuencia',
+                            'TEA',
+                            'Total Aportado',
+                            'Intereses Ganados',
+                            'Capital Final'
+                        ],
+                        'Valor': [
+                            f"{params_a['edad_actual']} años",
+                            f"{params_a['edad_jubilacion']} años",
+                            f"{params_a['plazo']} años",
+                            params_a['tipo_inversion'],
+                            f"{moneda}{params_a['monto_inicial']:,.2f}",
+                            f"{moneda}{params_a.get('aporte_periodico', 0):,.2f}",
+                            params_a.get('frecuencia', 'N/A'),
+                            f"{params_a['tea']*100:.2f}%",
+                            f"{moneda}{resultados_a['total_aportado']:,.2f}",
+                            f"{moneda}{resultados_a['interes_total']:,.2f}",
+                            f"{moneda}{resultados_a['saldo_final']:,.2f}"
+                        ]
+                    }
+                    
+                    df_summary = pd.DataFrame(data_summary)
+                    
+                    # Si hay datos de módulo B, agregarlos
+                    modulo_b_data = st.session_state.get('resultados_modulo_b', None)
+                    if modulo_b_data:
+                        df_modulo_b = pd.DataFrame({
+                            'Concepto': [
+                                'Opción Retiro',
+                                'Capital Bruto',
+                                'Impuesto',
+                                'Capital Neto',
+                                'TEA Retiro',
+                                'Pensión Mensual'
+                            ],
+                            'Valor': [
+                                modulo_b_data['opcion_retiro'],
+                                f"{moneda}{modulo_b_data['capital_bruto']:,.2f}",
+                                f"{moneda}{modulo_b_data['impuesto']:,.2f}",
+                                f"{moneda}{modulo_b_data['capital_neto']:,.2f}",
+                                f"{modulo_b_data['tea_retiro']*100:.2f}%",
+                                f"{moneda}{modulo_b_data.get('pension_mensual', 0):,.2f}"
+                            ]
+                        })
+                        df_summary = pd.concat([df_summary, df_modulo_b], ignore_index=True)
+                    
+                    # Convertir a Excel
+                    output = BytesIO()
+                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                        df_summary.to_excel(writer, sheet_name='Resumen', index=False)
+                        
+                        # Si hay aportes periódicos, agregar tabla detallada
+                        if params_a['tipo_inversion'] == "Aportes periódicos":
+                            df_detalle = pd.DataFrame({
+                                'Periodo': resultados_a['periodos'],
+                                'Aportes Acumulados': resultados_a['aportes'],
+                                'Intereses Acumulados': resultados_a['intereses'],
+                                'Saldo': resultados_a['saldos']
+                            })
+                            df_detalle.to_excel(writer, sheet_name='Detalle', index=False)
+                    
+                    excel_data = output.getvalue()
+                    
+                    st.download_button(
+                        label="⬇️ Descargar Excel",
+                        data=excel_data,
+                        file_name=f"Reporte_Inversion_Acciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        type="secondary"
+                    )
+                except Exception as e:
+                    st.error(f"❌ Error al generar Excel: {str(e)}")
+        
+        with col3:
+            if st.button("📋 CSV", type="primary", use_container_width=True):
+                try:
+                    # Crear DataFrame con resumen
+                    data_summary = {
+                        'Concepto': [
+                            'Edad Actual',
+                            'Edad Jubilación',
+                            'Plazo (años)',
+                            'Tipo Inversión',
+                            'Monto Inicial',
+                            'Aporte Periódico',
+                            'Frecuencia',
+                            'TEA',
+                            'Total Aportado',
+                            'Intereses Ganados',
+                            'Capital Final'
+                        ],
+                        'Valor': [
+                            f"{params_a['edad_actual']} años",
+                            f"{params_a['edad_jubilacion']} años",
+                            f"{params_a['plazo']} años",
+                            params_a['tipo_inversion'],
+                            f"{moneda}{params_a['monto_inicial']:,.2f}",
+                            f"{moneda}{params_a.get('aporte_periodico', 0):,.2f}",
+                            params_a.get('frecuencia', 'N/A'),
+                            f"{params_a['tea']*100:.2f}%",
+                            f"{moneda}{resultados_a['total_aportado']:,.2f}",
+                            f"{moneda}{resultados_a['interes_total']:,.2f}",
+                            f"{moneda}{resultados_a['saldo_final']:,.2f}"
+                        ]
+                    }
+                    
+                    df_summary = pd.DataFrame(data_summary)
+                    
+                    # Si hay datos de módulo B, agregarlos
+                    modulo_b_data = st.session_state.get('resultados_modulo_b', None)
+                    if modulo_b_data:
+                        df_modulo_b = pd.DataFrame({
+                            'Concepto': [
+                                'Opción Retiro',
+                                'Capital Bruto',
+                                'Impuesto',
+                                'Capital Neto',
+                                'TEA Retiro',
+                                'Pensión Mensual'
+                            ],
+                            'Valor': [
+                                modulo_b_data['opcion_retiro'],
+                                f"{moneda}{modulo_b_data['capital_bruto']:,.2f}",
+                                f"{moneda}{modulo_b_data['impuesto']:,.2f}",
+                                f"{moneda}{modulo_b_data['capital_neto']:,.2f}",
+                                f"{modulo_b_data['tea_retiro']*100:.2f}%",
+                                f"{moneda}{modulo_b_data.get('pension_mensual', 0):,.2f}"
+                            ]
+                        })
+                        df_summary = pd.concat([df_summary, df_modulo_b], ignore_index=True)
+                    
+                    # Convertir a CSV
+                    csv_data = df_summary.to_csv(index=False, encoding='utf-8-sig')
+                    
+                    st.download_button(
+                        label="⬇️ Descargar CSV",
+                        data=csv_data,
+                        file_name=f"Reporte_Inversion_Acciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        type="secondary"
+                    )
+                except Exception as e:
+                    st.error(f"❌ Error al generar CSV: {str(e)}")
     
     # ==================== COMPARACIÓN DE ESCENARIOS ====================
     with tab_comparacion:
@@ -1016,11 +1199,18 @@ def mostrar_calculadora_acciones():
         
         fig_comparacion = crear_grafico_comparacion_escenarios(
             resultados_a['saldo_final'],
-            params_a['edad_jubilacion'],
+            params_a['edad_actual'],
             params_a['tea'],
             moneda
         )
         st.plotly_chart(fig_comparacion, use_container_width=True)
+        
+        # Interpretación del gráfico
+        st.info("""
+        **📖 Interpretación:** Este gráfico muestra cómo crece tu capital si sigues invirtiendo hasta diferentes edades de jubilación. 
+        Mientras más años mantengas tu inversión, mayor será el monto acumulado debido al interés compuesto. 
+        Por ejemplo, jubilarse a los 70 años en lugar de los 60 puede significar tener el doble o más de capital disponible.
+        """, icon="💡")
         
         st.markdown("---")
         st.markdown("### 📊 Comparación por TEA")
@@ -1095,6 +1285,21 @@ def mostrar_calculadora_acciones():
             )
             
             st.plotly_chart(fig_tea, use_container_width=True)
+            
+            # Interpretación del gráfico de TEA
+            if len(tea_comparar) > 0:
+                tea_min = min(tea_comparar)
+                tea_max = max(tea_comparar)
+                saldo_min = df_comparacion.loc[df_comparacion['TEA'] == f"{tea_min}%", 'Saldo Final'].values[0]
+                saldo_max = df_comparacion.loc[df_comparacion['TEA'] == f"{tea_max}%", 'Saldo Final'].values[0]
+                diferencia_pct = ((saldo_max - saldo_min) / saldo_min) * 100
+                
+                st.info(f"""
+                **📖 Interpretación:** Este gráfico compara cómo diferentes tasas de retorno (TEA) impactan tu capital final 
+                después de {años_comparar} años. Una diferencia de solo {tea_max-tea_min} puntos porcentuales en la TEA 
+                (de {tea_min}% a {tea_max}%) puede resultar en {diferencia_pct:.1f}% más de capital. 
+                Esto resalta la importancia de buscar inversiones con mejores rendimientos y mantenerlas a largo plazo.
+                """, icon="💡")
             
             # Tabla de comparación
             st.dataframe(
