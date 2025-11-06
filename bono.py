@@ -834,9 +834,9 @@ def mostrar_calculadora_bonos():
     st.info(
         f"""**📖 Interpretación:** Este diagrama muestra todos los flujos de efectivo del bono a lo largo del tiempo.
     La flecha roja hacia abajo representa tu inversión inicial.
-    Las flechas verdes hacia arriba son los cupones que recibirás periódicamente (${cupon_periodico:,.2f} cada {periodo.lower()}), totalizando ${total_cupones:,.2f}.
-    La flecha azul al final representa la devolución del valor nominal (${valor_nominal:,.2f}).
-    En total recibirás ${total_cupones + valor_nominal:,.2f}.
+    Las flechas verdes hacia arriba son los cupones que recibirás periódicamente (**{cupon_periodico:.2f}** cada **{periodo.lower()}**), totalizando **{total_cupones:,.2f}**.
+    La flecha azul al final representa la devolución del valor nominal (**{valor_nominal:.2f}**).
+    En total recibirás **{total_cupones + valor_nominal:.2f}**.
     """, icon="💡"
     )
     
