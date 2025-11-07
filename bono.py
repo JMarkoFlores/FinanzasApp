@@ -765,22 +765,27 @@ def mostrar_calculadora_bonos():
             step=1
         )
     
-    # Calcular cupón periódico
+    # Calcular cupón periódico usando fórmula de tasas equivalentes
+    # TEP = (1 + TEA)^(1/n) - 1
     if periodo == "Anual":
-        cupon_periodico = valor_nominal * tasa_cupon
+        tasa_cupon_periodica = tasa_cupon  # n = 1
+        cupon_periodico = valor_nominal * tasa_cupon_periodica
     elif periodo == "Semestral":
-        cupon_periodico = valor_nominal * tasa_cupon / 2
+        tasa_cupon_periodica = (1 + tasa_cupon) ** (1/2) - 1  # n = 2
+        cupon_periodico = valor_nominal * tasa_cupon_periodica
     elif periodo == "Trimestral":
-        cupon_periodico = valor_nominal * tasa_cupon / 4
+        tasa_cupon_periodica = (1 + tasa_cupon) ** (1/4) - 1  # n = 4
+        cupon_periodico = valor_nominal * tasa_cupon_periodica
     elif periodo == "Mensual":
-        cupon_periodico = valor_nominal * tasa_cupon / 12
+        tasa_cupon_periodica = (1 + tasa_cupon) ** (1/12) - 1  # n = 12
+        cupon_periodico = valor_nominal * tasa_cupon_periodica
     
     st.markdown(f"### Cupón Periódico: **${cupon_periodico:,.2f}**")
     
     st.markdown("---")
     
     # TEA - Tasa de Rendimiento Requerida
-    st.subheader("Tasa de Rendimiento Requerida")
+    st.subheader("Tasa de Retorno Esperada")
     
     tea = st.number_input(
         "TEA - Tasa Efectiva Anual (%)", 
@@ -791,114 +796,214 @@ def mostrar_calculadora_bonos():
         help="Tasa de rendimiento que deseas obtener como inversionista"
     ) / 100
     
-    # Alerta de comparación con tasa cupón
-    if tea < tasa_cupon:
-        st.error("⚠️ La TEA es menor que la tasa cupón. Esto significa que pagarás más por el bono de lo que recibirás, resultando en una pérdida.")
-    elif tea > tasa_cupon:
-        st.success("✓ La TEA es mayor que la tasa cupón. Pagarás menos por el bono, obteniendo una ganancia.")
-    else:
-        st.info("La TEA es igual a la tasa cupón. El bono se valorará a la par.")
+    # Comentario contextual basado en la tasa cupón
+    st.markdown(f"""
+    💡 **Nota:** La tasa cupón del bono es **{tasa_cupon*100:.2f}%** anual. 
+    
+    - Si ingresas una TEA **mayor** que {tasa_cupon*100:.2f}%, el bono cotizará **con descuento** (precio < valor nominal).
+    - Si ingresas una TEA **menor** que {tasa_cupon*100:.2f}%, el bono cotizará **con prima** (precio > valor nominal).
+    - Si ingresas una TEA **igual** a {tasa_cupon*100:.2f}%, el bono cotizará **a la par** (precio = valor nominal).
+    """)
     
     st.markdown("---")
     
+    # Convertir tiempo a años según el periodo seleccionado
+    if periodo == "Mensual":
+        plazo_años = tiempo / 12
+    elif periodo == "Trimestral":
+        plazo_años = tiempo / 4
+    elif periodo == "Semestral":
+        plazo_años = tiempo / 2
+    else:  # Anual
+        plazo_años = tiempo
+    
     # Calcular valor presente usando la función correcta
     resultados = calcular_valor_presente_bono_completo(
-        valor_nominal, tasa_cupon, periodo, tiempo, tea
+        valor_nominal, tasa_cupon, periodo, plazo_años, tea
     )
     vp_bono = resultados['valor_presente_total']
     cupon_calc = resultados['cupon_periodico']
     
-    # Mostrar resultados
-    st.subheader("Resultados del Análisis")
+    # ==================== MOSTRAR RESULTADOS ====================
+    st.header("💰 Resultados de la Valoración")
     
-    col1, col2, col3 = st.columns(3)
+    # Métricas principales
+    col1, col2, col3, col4 = st.columns(4)
+    
     with col1:
-        st.metric("Valor Nominal", f"${valor_nominal:,.2f}")
+        st.metric(
+            label="Valor Presente del Bono",
+            value=f"USD {vp_bono:,.2f}",
+            delta=f"{((vp_bono / valor_nominal - 1) * 100):.2f}%",
+            delta_color="off",
+            help="Precio teórico del bono hoy"
+        )
+    
     with col2:
-        st.metric("Valor Presente del Bono", f"${vp_bono:,.2f}")
+        st.metric(
+            label="Cupón Periódico",
+            value=f"USD {cupon_periodico:,.2f}",
+            help="Monto de cada pago de cupón"
+        )
+    
     with col3:
-        diferencia = vp_bono - valor_nominal
-        st.metric("Diferencia", f"${diferencia:,.2f}", delta=f"{(diferencia/valor_nominal)*100:.2f}%")
+        st.metric(
+            label="Número de Pagos",
+            value=f"{tiempo}",
+            help="Total de cupones a recibir"
+        )
     
-    # Diagrama de flujo de efectivo
-    st.subheader("Flujo de Efectivo")
+    with col4:
+        total_cupones = cupon_periodico * tiempo
+        st.metric(
+            label="Total en Cupones",
+            value=f"USD {total_cupones:,.2f}",
+            help="Suma de todos los cupones"
+        )
     
-    # Crear y mostrar el diagrama visual
-    fig = crear_diagrama_flujo_efectivo(tiempo, cupon_periodico, valor_nominal, vp_bono, periodo)
-    st.pyplot(fig)
-    plt.close()
+    # st.markdown("---")
+    
+    # # Información adicional e interpretación
+    # col1, col2 = st.columns(2)
+    
+    # with col1:
+    #     st.subheader("📊 Tasas Efectivas por Periodo")
+    #     st.markdown(f"""
+    #     - **Tasa Cupón por periodo**: {tasa_cupon_periodica*100:.4f}%
+    #     - **Tasa Descuento por periodo**: {resultados['tasa_descuento_periodica']*100:.4f}%
+    #     - **Frecuencia**: {periodo} ({resultados['periodos_por_año']} veces/año)
+    #     """)
+    
+    # with col2:
+        # st.subheader("💡 Interpretación")
+        # if vp_bono > valor_nominal:
+        #     st.success(f"""
+        #     **Bono con Prima** 🟢
+            
+        #     El bono cotiza por encima de su valor nominal 
+        #     ({((vp_bono / valor_nominal - 1) * 100):.2f}% más).
+        #     Esto ocurre cuando la tasa cupón es mayor que la tasa de retorno esperada.
+        #     """)
+        # elif vp_bono < valor_nominal:
+        #     st.warning(f"""
+        #     **Bono con Descuento** 🟡
+            
+        #     El bono cotiza por debajo de su valor nominal 
+        #     ({((1 - vp_bono / valor_nominal) * 100):.2f}% menos).
+        #     Esto ocurre cuando la tasa cupón es menor que la tasa de retorno esperada.
+        #     """)
+        # else:
+        #     st.info("""
+        #     **Bono a la Par** 🔵
+            
+        #     El bono cotiza a su valor nominal.
+        #     La tasa cupón es igual a la tasa de retorno esperada.
+        #     """)
+    
+    st.markdown("---")
+    
+    # ==================== VISUALIZACIONES ====================
+    st.header("📈 Visualización de Flujos")
+    
+    # Diagrama de flujo de efectivo interactivo
+    st.subheader("Flujos de Caja Periódicos")
+    fig_interactivo = crear_diagrama_flujo_interactivo(resultados, valor_nominal, periodo)
+    st.plotly_chart(fig_interactivo, use_container_width=True)
     
     # Interpretación del diagrama de flujo
-    total_cupones = cupon_periodico * tiempo
-
     st.info(
-        f"""**📖 Interpretación:** Este diagrama muestra todos los flujos de efectivo del bono a lo largo del tiempo.
-    La flecha roja hacia abajo representa tu inversión inicial.
-    Las flechas verdes hacia arriba son los cupones que recibirás periódicamente (**{cupon_periodico:.2f}** cada **{periodo.lower()}**), totalizando **{total_cupones:,.2f}**.
-    La flecha azul al final representa la devolución del valor nominal (**{valor_nominal:.2f}**).
-    En total recibirás **{total_cupones + valor_nominal:.2f}**.
-    """, icon="💡"
+        f"""**📖 Interpretación:** Este gráfico muestra todos los flujos de efectivo del bono a lo largo del tiempo.
+Las barras verdes representan los cupones periódicos que recibirás (**USD {cupon_periodico:,.2f}** cada **{periodo.lower()}**), totalizando **USD {total_cupones:,.2f}**.
+La barra roja al final representa el pago final que incluye el último cupón más el valor nominal (**USD {cupon_periodico + valor_nominal:,.2f}**).
+En total recibirás **USD {total_cupones + valor_nominal:,.2f}** durante la vida del bono, pagando hoy **USD {vp_bono:,.2f}**.
+""", icon="💡"
     )
     
     st.markdown("---")
     
-    # Crear tabla de flujos detallada
-    periodos_list = list(range(0, tiempo + 1))
-    flujos = []
-    flujos_actualizados = []
-    vp_acumulado_list = []
+    # ==================== TABLA DETALLADA ====================
     
-    # Usar la tasa de descuento periódica de los resultados
-    tasa_descuento = resultados['tasa_descuento_periodica']
+    # ==================== TABLA DETALLADA ====================
+    st.header("📋 Tabla Detallada de Flujos")
     
-    for t in periodos_list:
-        if t == 0:
-            flujo = -vp_bono
-            flujo_actualizado = flujo
-            vp_acum = flujo
-        elif t == tiempo:
-            flujo = cupon_periodico + valor_nominal
-            flujo_actualizado = flujo / ((1 + tasa_descuento) ** t)
-            vp_acum = vp_acumulado_list[-1] + flujo_actualizado
+    # Crear DataFrame con los flujos del resultado
+    periodos_list = list(range(1, tiempo + 1))
+    flujos_data = []
+    tipos_flujo = []
+    
+    for i, periodo_num in enumerate(periodos_list):
+        if periodo_num == tiempo:
+            flujo = resultados['flujos'][i]
+            tipo = "Cupón + Principal"
         else:
-            flujo = cupon_periodico
-            flujo_actualizado = flujo / ((1 + tasa_descuento) ** t)
-            vp_acum = vp_acumulado_list[-1] + flujo_actualizado
+            flujo = resultados['flujos'][i]
+            tipo = "Cupón"
         
-        flujos.append(flujo)
-        flujos_actualizados.append(flujo_actualizado)
-        vp_acumulado_list.append(vp_acum)
+        flujos_data.append({
+            'Periodo': periodo_num,
+            'Flujo (USD)': flujo,
+            'Valor Presente (USD)': resultados['valores_presentes'][i],
+            'Tipo': tipo
+        })
     
-    df_flujos = pd.DataFrame({
-        'Periodo': periodos_list,
-        'Flujo de Efectivo': flujos,
-        'Flujo Actualizado': flujos_actualizados,
-        'VP Acumulado': vp_acumulado_list,
-        'Tipo de Flujo': ['Inversión Inicial'] + ['Cupón'] * (tiempo - 1) + ['Cupón + Principal']
-    })
+    df_detalle = pd.DataFrame(flujos_data)
     
-    # Mostrar tabla
-    st.subheader("Tabla Detallada de Flujos")
+    # Mostrar tabla con formato
     st.dataframe(
-        df_flujos.style.format({
-            'Flujo de Efectivo': '${:,.2f}',
-            'Flujo Actualizado': '${:,.2f}',
-            'VP Acumulado': '${:,.2f}'
-        }).background_gradient(subset=['VP Acumulado'], cmap='RdYlGn', vmin=df_flujos['VP Acumulado'].min(), vmax=0),
+        df_detalle.style.format({
+            'Flujo (USD)': '${:,.2f}',
+            'Valor Presente (USD)': '${:,.2f}'
+        }),
         use_container_width=True,
-        height=400
+        hide_index=True,
+        height=min(400, 35 * len(df_detalle) + 38)
+    )
+    
+    # Totales
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        total_flujos = sum(resultados['flujos'])
+        st.metric(
+            label="Total Flujos Nominales",
+            value=f"USD {total_flujos:,.2f}"
+        )
+    
+    with col2:
+        st.metric(
+            label="Total Valor Presente",
+            value=f"USD {vp_bono:,.2f}"
+        )
+    
+    with col3:
+        diferencia = total_flujos - vp_bono
+        st.metric(
+            label="Descuento Temporal",
+            value=f"USD {diferencia:,.2f}",
+            delta=f"-{(diferencia/total_flujos*100):.2f}%",
+            delta_color="inverse"
+        )
+    
+    # Interpretación de la tabla
+    st.info(
+        f"""**📖 Interpretación de la Tabla:** Esta tabla desglosa cada flujo de efectivo del bono.
+La columna "Flujo" muestra el dinero que recibirás en cada periodo ({cupon_periodico:,.2f} USD por cupón).
+La columna "Valor Presente" muestra cuánto vale hoy cada flujo futuro, descontado a la tasa de {tea*100:.2f}%.
+Note cómo los flujos más lejanos tienen menor valor presente debido al valor temporal del dinero.
+El descuento temporal de {diferencia:,.2f} USD ({(diferencia/total_flujos*100):.2f}%) representa el costo de esperar para recibir el dinero.
+""", icon="💡"
     )
     
     st.markdown("---")
     
-    # Opciones de descarga
-    st.subheader("📥 Descargar Reportes")
+    # ==================== BOTONES DE DESCARGA ====================
+    st.header("📥 Descargar Reportes")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         # Generar Excel
-        excel_file = generar_excel_pagos(df_flujos, valor_nominal, tasa_cupon, tea, vp_bono, periodo)
+        excel_file = generar_excel_pagos(df_detalle, valor_nominal, tasa_cupon, tea, vp_bono, periodo)
         st.download_button(
             label="📊 Descargar Excel",
             data=excel_file,
@@ -909,7 +1014,7 @@ def mostrar_calculadora_bonos():
     
     with col2:
         # Generar PDF
-        pdf_file = generar_pdf_pagos(df_flujos, valor_nominal, tasa_cupon, tea, vp_bono, periodo, cupon_periodico)
+        pdf_file = generar_pdf_pagos(df_detalle, valor_nominal, tasa_cupon, tea, vp_bono, periodo, cupon_periodico)
         st.download_button(
             label="📄 Descargar PDF",
             data=pdf_file,
@@ -920,7 +1025,7 @@ def mostrar_calculadora_bonos():
     
     with col3:
         # Generar CSV
-        csv_data = df_flujos.to_csv(index=False, encoding='utf-8-sig')
+        csv_data = df_detalle.to_csv(index=False, encoding='utf-8-sig')
         st.download_button(
             label="📋 Descargar CSV",
             data=csv_data,
@@ -929,9 +1034,10 @@ def mostrar_calculadora_bonos():
             use_container_width=True
         )
     
-    # Análisis y recomendación
     st.markdown("---")
-    st.subheader("Análisis y Recomendación")
+    
+    # ==================== ANÁLISIS Y RECOMENDACIÓN ====================
+    st.header("📊 Análisis y Recomendación")
     
     # Calcular métricas adicionales
     rendimiento_real = ((valor_nominal + cupon_periodico * tiempo) / vp_bono - 1) * 100
