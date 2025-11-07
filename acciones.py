@@ -874,10 +874,10 @@ def mostrar_calculadora_acciones():
                 f"{moneda}{capital_neto:,.2f}",
                 delta=f"Después de impuestos"
             )
-        
+        #{moneda}{ganancias:,.2f}
         st.info(f"""
         **📌 Detalle Fiscal:**
-        - Ganancias: {moneda}{ganancias:,.2f}
+        - Ganancias: {moneda}{capital_neto:,.2f}
         - Tasa de impuesto: {tasa_impuesto*100:.1f}% ({tipo_inversion_nombre})
         - Impuesto a pagar: {moneda}{impuesto:,.2f}
         """)
@@ -905,16 +905,14 @@ def mostrar_calculadora_acciones():
             col1, col2 = st.columns(2)
             
             with col1:
-                # Valor por defecto: mitad de la TEA del Módulo A
-                tea_default = (params_a['tea'] * 100) / 2
                 tea_retiro_pct = st.number_input(
                     "TEA durante el Retiro (%) ❓",
                     min_value=0.0,
                     max_value=50.0,
-                    value=tea_default,
+                    value=params_a['tea'] * 100,
                     step=0.5,
                     format="%.2f",
-                    help="Rendimiento anual esperado durante tu jubilación (por defecto: mitad de la TEA del Módulo A)"
+                    help="Rendimiento anual esperado durante tu jubilación"
                 )
                 tea_retiro = tea_retiro_pct / 100
             
@@ -1017,7 +1015,7 @@ def mostrar_calculadora_acciones():
                     
                     modulo_b_data = st.session_state.get('resultados_modulo_b', None)
                     
-                    pdf_file = generar_pdf_completo(modulo_a_data, modulo_b_data, moneda, tipo_inversion_nombre)
+                    pdf_file = generar_pdf_completo(modulo_a_data, modulo_b_data, moneda)
                     
                     st.download_button(
                         label="⬇️ Descargar PDF",
