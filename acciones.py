@@ -354,7 +354,7 @@ def crear_grafico_comparacion_escenarios(capital_actual, edad_actual, tea, moned
 
 # ==================== EXPORTACIÓN A PDF ====================
 
-def generar_pdf_completo(modulo_a_data, modulo_b_data, moneda):
+def generar_pdf_completo(modulo_a_data, modulo_b_data, moneda, tipo_inversion_nombre="Inversión Nacional"):
     """Genera un reporte PDF completo con ambos módulos"""
     output = BytesIO()
     doc = SimpleDocTemplate(output, pagesize=letter, topMargin=0.5*inch)
@@ -379,9 +379,9 @@ def generar_pdf_completo(modulo_a_data, modulo_b_data, moneda):
     )
     
     # Título principal
-    moneda_texto = "Soles (PEN)" if moneda == "S/" else "Dólares (USD)"
     elements.append(Paragraph(f"REPORTE DE INVERSIÓN EN ACCIONES", title_style))
-    elements.append(Paragraph(f"Moneda: {moneda_texto}", styles['Normal']))
+    elements.append(Paragraph(f"Tipo de Inversión: {tipo_inversion_nombre}", styles['Normal']))
+    elements.append(Paragraph(f"Moneda: Dólares (USD)", styles['Normal']))
     elements.append(Spacer(1, 0.2*inch))
     elements.append(Paragraph(f"<b>Fecha:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", 
                              styles['Normal']))
@@ -483,24 +483,24 @@ def mostrar_calculadora_acciones():
     st.markdown("**Sistema de Planificación Financiera Integral**")
     st.markdown("---")
     
-    # ===== SELECCIÓN DE MONEDA =====
+    # ===== SELECCIÓN DE TIPO DE INVERSIÓN =====
     if 'moneda_seleccionada' not in st.session_state:
         st.session_state['moneda_seleccionada'] = None
     
     if st.session_state['moneda_seleccionada'] is None:
-        st.subheader("💱 Paso 1: Selecciona la Moneda de Inversión")
-        st.info("👉 Todas las cantidades y resultados se mostrarán en la moneda que elijas.")
+        st.subheader("🌎 Paso 1: Selecciona el Tipo de Inversión")
+        st.info("👉 Define si tu inversión es nacional o extranjera. Todas las cantidades se manejarán en dólares ($).")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("🇵🇪 Invertir en Soles (PEN)", use_container_width=True, type="primary"):
+            if st.button("🇵🇪 Inversión Nacional", use_container_width=True, type="primary"):
                 st.session_state['moneda_seleccionada'] = 'PEN'
-                st.session_state['simbolo_moneda'] = 'S/'
+                st.session_state['simbolo_moneda'] = '$'
                 st.rerun()
         
         with col2:
-            if st.button("🇺🇸 Invertir en Dólares (USD)", use_container_width=True, type="primary"):
+            if st.button("� Inversión Extranjera", use_container_width=True, type="primary"):
                 st.session_state['moneda_seleccionada'] = 'USD'
                 st.session_state['simbolo_moneda'] = '$'
                 st.rerun()
@@ -508,23 +508,26 @@ def mostrar_calculadora_acciones():
         st.markdown("---")
         st.markdown("""
         **📌 Nota sobre Impuestos:**
-        - **Inversión en Soles (PEN):** Aplica 5% de impuesto sobre ganancias
-        - **Inversión en Dólares (USD):** Aplica 29.5% de impuesto sobre ganancias
+        - **Inversión Nacional:** Aplica 5% de impuesto sobre ganancias de capital
+        - **Inversión Extranjera:** Aplica 29.5% de impuesto sobre ganancias de capital
+        
+        *Todas las inversiones se manejan en dólares ($USD)*
         """)
         
         return
     
-    # Moneda ya seleccionada
+    # Tipo de inversión ya seleccionado
     moneda_codigo = st.session_state['moneda_seleccionada']
     moneda = st.session_state['simbolo_moneda']
-    moneda_nombre = "Soles (PEN)" if moneda_codigo == 'PEN' else "Dólares (USD)"
+    tipo_inversion_nombre = "Inversión Nacional" if moneda_codigo == 'PEN' else "Inversión Extranjera"
+    tasa_impuesto_display = "5%" if moneda_codigo == 'PEN' else "29.5%"
     
-    # Botón para cambiar moneda
+    # Botón para cambiar tipo de inversión
     col_header1, col_header2 = st.columns([3, 1])
     with col_header1:
-        st.success(f"💰 **Moneda seleccionada:** {moneda_nombre}")
+        st.success(f"💰 **Tipo de Inversión:** {tipo_inversion_nombre} (Impuesto: {tasa_impuesto_display})")
     with col_header2:
-        if st.button("🔄 Cambiar Moneda"):
+        if st.button("🔄 Cambiar Tipo"):
             st.session_state['moneda_seleccionada'] = None
             st.session_state.clear()
             st.rerun()
@@ -578,10 +581,10 @@ def mostrar_calculadora_acciones():
             monto_inicial = st.number_input(
                 f"Monto Inicial ({moneda}) ❓",
                 min_value=0.0,
-                value=10000.0 if moneda_codigo == 'PEN' else 3000.0,
+                value=3000.0,
                 step=100.0,
                 format="%.2f",
-                help="Capital con el que iniciarás tu inversión"
+                help="Capital con el que iniciarás tu inversión en dólares"
             )
         
         with col3:
@@ -595,10 +598,10 @@ def mostrar_calculadora_acciones():
                 aporte_periodico = st.number_input(
                     f"Aporte Periódico ({moneda}) ❓",
                     min_value=0.0,
-                    value=500.0 if moneda_codigo == 'PEN' else 150.0,
+                    value=150.0,
                     step=10.0,
                     format="%.2f",
-                    help="Monto que aportarás en cada periodo"
+                    help="Monto que aportarás en cada periodo (en dólares)"
                 )
             else:
                 frecuencia = "Anual"
@@ -875,7 +878,7 @@ def mostrar_calculadora_acciones():
         st.info(f"""
         **📌 Detalle Fiscal:**
         - Ganancias: {moneda}{ganancias:,.2f}
-        - Tasa de impuesto: {tasa_impuesto*100:.1f}% (por inversión en {moneda_nombre})
+        - Tasa de impuesto: {tasa_impuesto*100:.1f}% ({tipo_inversion_nombre})
         - Impuesto a pagar: {moneda}{impuesto:,.2f}
         """)
         
@@ -902,14 +905,16 @@ def mostrar_calculadora_acciones():
             col1, col2 = st.columns(2)
             
             with col1:
+                # Valor por defecto: mitad de la TEA del Módulo A
+                tea_default = (params_a['tea'] * 100) / 2
                 tea_retiro_pct = st.number_input(
                     "TEA durante el Retiro (%) ❓",
                     min_value=0.0,
                     max_value=50.0,
-                    value=params_a['tea'] * 100,
+                    value=tea_default,
                     step=0.5,
                     format="%.2f",
-                    help="Rendimiento anual esperado durante tu jubilación"
+                    help="Rendimiento anual esperado durante tu jubilación (por defecto: mitad de la TEA del Módulo A)"
                 )
                 tea_retiro = tea_retiro_pct / 100
             
@@ -1012,7 +1017,7 @@ def mostrar_calculadora_acciones():
                     
                     modulo_b_data = st.session_state.get('resultados_modulo_b', None)
                     
-                    pdf_file = generar_pdf_completo(modulo_a_data, modulo_b_data, moneda)
+                    pdf_file = generar_pdf_completo(modulo_a_data, modulo_b_data, moneda, tipo_inversion_nombre)
                     
                     st.download_button(
                         label="⬇️ Descargar PDF",
